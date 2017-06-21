@@ -1,0 +1,150 @@
+!
+username cumulus nopassword
+!
+service integrated-vtysh-config
+!
+log syslog
+!
+{% if fabric.vrfs is defined %}
+{% for name, interface in interfaces.items() %}
+{% if interface.l3host is defined and interface.l3host %}
+interface {{ name }}{% if interface.vrf is defined %} vrf {{ interface.vrf}}{% endif %}
+
+ ipv6 nd ra-interval 10
+ no ipv6 nd suppress-ra
+{% if interface.mtu is defined %}
+ ipv6 nd mtu {{ interface.mtu }}
+{% endif %}
+!
+{% elif interface.fabric_port is defined and interface.fabric_port %}
+{% for vrf_name, vrf in fabric.vrfs.items() %}
+interface {{ name }}.{{ vrf.id }} vrf {{ vrf_name }}
+ ipv6 nd ra-interval 10
+ no ipv6 nd suppress-ra
+{% if interface.mtu is defined %}
+ ipv6 nd mtu {{ interface.mtu }}
+{% endif %}
+!
+{% endfor %}
+{% endif %}
+{% endfor %}
+{% for vrfname, vrfinfo in fabric.vrfs.items() %}
+router bgp {{ fabric.asn }} vrf {{ vrfname }}
+{% if bgp_networks is defined %}
+{% for net in bgp_networks %}
+ network {{ net }}
+{% endfor %}
+{% endif %}
+ bgp router-id {{ fabric.router_id }}
+ bgp bestpath as-path multipath-relax no-as-set
+ neighbor fabric peer-group
+ neighbor fabric remote-as external
+ neighbor fabric description Internal Fabric Network
+ neighbor fabric capability extended-nexthop
+{% for port, value in interfaces.items() %}
+{% if value and 'fabric_port' in value %}
+ neighbor {{ port }}.{{ vrfinfo.id }} interface v6only peer-group fabric
+{% endif %}
+{% if value and 'l3host' in value %}
+{% if 'vrf' in value and value.vrf == vrfname  %}
+ neighbor {{ port }} interface v6only peer-group fabric
+{% endif %}
+{% endif %}
+{% endfor %}
+!
+ address-family ipv4 unicast
+  redistribute connected route-map LOOPBACK_{{ vrfname }}
+{% if default_originate4 is defined %}
+  neighbor fabric default-originate
+{% endif %}
+  maximum-paths 64
+ exit-address-family
+!
+ address-family ipv6
+  redistribute connected route-map LOOPBACK_{{ vrfname }}
+{% if default_originate6 is defined %}
+  neighbor fabric default-originate
+{% endif %}
+  neighbor fabric activate
+  maximum-paths 64
+ exit-address-family
+!
+{% endfor %}
+{% for vrfname, vrfvalue in fabric.vrfs.items() %}
+route-map LOOPBACK_{{ vrfname }} permit 100
+ match interface {{ vrfname }}
+!
+{% endfor %}
+{% else %} {# LEGACY #}
+{% for number in range(fabric.uplink_port_start, fabric.uplink_port_end +1) %}
+interface swp{{ number }}
+ ipv6 nd ra-interval 10
+ no ipv6 nd suppress-ra
+!
+{% endfor %}
+{% for name, interface in interfaces.items() %}
+{% if interface.l3host is defined and interface.l3host %}
+interface {{ name }}
+ ipv6 nd ra-interval 10
+ no ipv6 nd suppress-ra
+!
+{% endif %}
+{% endfor %}
+router bgp {{ fabric.asn }}
+ bgp router-id {{ fabric.router_id }}
+ bgp bestpath as-path multipath-relax no-as-set
+{% for number in range(fabric.uplink_port_start, fabric.uplink_port_end +1) %}
+ neighbor swp{{ number }} interface
+ neighbor swp{{ number }} remote-as external
+{% endfor %}
+{% for number, value in interfaces.items() %}
+{% if 'l3host' in value and value.l3host %}
+ neighbor {{ number }} interface
+ neighbor {{ number }} remote-as external
+{% endif %}
+{% endfor %}
+{% for neighbor in fabric.bgp_neighbors|default([]) %}
+ neighbor {{ neighbor }} remote-as external
+{% endfor %}
+{% for neighbor in bgp_static_neighbors|default([]) %}
+ neighbor {{ neighbor.ip }} remote-as {{neighbor.remote_as}}
+{% endfor %}
+!
+ address-family ipv4 unicast
+  network {{ fabric.loopback }}/32
+{% if bgp_networks is defined %}
+{% for net in bgp_networks %}
+  network {{ net }}
+{% endfor %}
+{% endif %}
+{% if default_originate is defined %}
+{% for number, value in interfaces.items() %}
+{% if 'l3host' in value and value.l3host %}
+  neighbor {{ number }} default-originate
+{% endif %}
+{% endfor %}
+{% for number in range(fabric.uplink_port_start, fabric.uplink_port_end +1) %}
+  neighbor swp{{ number }} default-originate
+{% endfor %}
+{% for neighbor in fabric.bgp_neighbors|default([]) %}
+  neighbor {{ neighbor }} default-originate
+{% endfor %}
+{% endif %}
+  maximum-paths 64
+ exit-address-family
+!
+ address-family ipv6 unicast
+{% for number, value in interfaces.items() %}
+{% if 'l3host' in value and value.l3host %}
+  neighbor {{ number }} default-originate
+{% endif %}
+{% endfor %}
+{% for number in range(fabric.uplink_port_start, fabric.uplink_port_end +1) %}
+  neighbor swp{{ number }} activate
+{% endfor %}
+  maximum-paths 64
+ exit-address-family
+!
+{% endif %}
+line vty
+!

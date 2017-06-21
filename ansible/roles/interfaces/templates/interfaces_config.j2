@@ -1,0 +1,158 @@
+{% if bridge is defined %}
+auto bridge
+iface bridge
+    bridge-vlan-aware yes
+    bridge-ports {{ bridge_ports|mandatory|join(' ') }}
+    bridge-stp yes
+    bridge-vids {% for item in bridge_vids %}{{ vlans[item] }} {% endfor %}
+
+{% for vlan, interface in bridge.items() %}
+auto bridge.{{ vlan }}
+iface bridge.{{ vlan }}
+{% if 'vmac' in interface %}
+    address-virtual {{ interface.vmac  }} {{ interface.vipv4  }}{% if interface.pipv6 is defined %} {{ interface.vipv6 }}{% endif %}
+
+{% endif %}
+    address {{ interface.pipv4  }}
+{% if interface.pipv6 is defined %}
+    address {{ interface.pipv6 }}
+{% endif %}
+{% if 'alias' in interface %}
+    alias {{ interface.alias }}
+{% endif %}
+{% if 'vrf' in interface %}
+    vrf {{ interface.vrf }}
+{% endif %}
+{% if 'gateway' in interface %}
+    gateway {{ interface.gateway }}
+{% endif %}
+{% if 'routes' in interface %}
+{% for subnet, gateway in interface['routes'].items() %}
+    post-up ip route add {{ subnet }} via {{ gateway }} dev bridge.{{ vlan }} {% if 'vrf' in interface %} table {{ interface.vrf }}{% endif %}
+
+{% endfor %}
+{% endif %}
+
+{% endfor %}
+{% endif %}
+{% if vrfs is defined %}
+{% for vrf in vrfs %}
+auto {{ vrf }}
+iface {{ vrf }}
+    address 127.0.0.1/8
+{% if fabric is defined and 'vrfs' in fabric %}
+{% if vrf != "mgmt" %}
+    post-up ip addr add {{ fabric.vrfs[vrf].loopback }} dev {{ vrf }}
+{% endif %}
+{% endif %}
+    vrf-table auto
+
+{% endfor %}
+{% endif %}
+
+{% if bonds is defined %}
+{% for host, lacp in bonds.items() %}
+auto {{ host }}
+iface {{ host }}
+{% if 'alias' in lacp %}
+    alias {{ lacp.alias }}
+{% endif %}
+{% if lacp.lacp_bypass_allow is defined %}
+    bond-lacp-bypass-allow 1
+{% endif %}
+{% if lacp.pvid is defined  %}
+    bridge-pvid {{ lacp.pvid }}
+{% endif %}
+    bond-xmit-hash-policy layer3+4
+{% if lacp.clagid is defined %}
+    clag-id {{ lacp.clagid }}
+{% endif %}
+{% if bridge_options is defined and 'mtu' in bridge_options %}
+    mtu {{ bridge_options.mtu }}
+{% endif %}
+    bond-miimon 100
+    bond-lacp-rate 1
+    bond-min-links 1
+{% if lacp.vlans is defined %}
+    bridge-vids {% for items in lacp.vlans %}{{ vlans[items] }} {% endfor %}
+
+{% endif %}
+    bond-mode 802.3ad
+    bond-slaves {{ lacp.slaves }}
+
+{% endfor %}
+{% endif %}
+
+{% if peerlink is defined %}
+auto peerlink.{{ peerlink.vlan }}
+iface peerlink.{{ peerlink.vlan }}
+    clagd-priority {{ peerlink.clagd_priority }}
+    address {{ peerlink.address }}
+    clagd-sys-mac {{ peerlink.clagd_sys_mac }}
+    clagd-enable yes
+    clagd-peer-ip {{ peerlink.clagd_peer_ip }}
+{% endif %}
+
+{% if interfaces is defined %}
+{% for port, value in interfaces.items() %}
+auto {{ port }}
+iface {{ port }} {% if value and 'address' in value %}inet static{% endif %}
+
+{% if value and 'mtu' in value %}
+    mtu {{ value['mtu'] }}
+{% endif %}
+{% if value and 'link-speed' in value %}
+    link-speed {{ value['link-speed'] }}
+{% endif %}
+{% if value and 'link-duplex' in value %}
+    link-duplex {{ value['link-duplex']|ternary('full', 'half') }}
+{% endif %}
+{% if value and 'link-autoneg' in value %}
+    link-autoneg {{ value['link-autoneg']|ternary('on', 'off') }}
+{% endif %}
+{% if value and 'transit_access' in value  %}
+    bridge-access {{ value.transit_access }}
+{% endif %}
+{% if value and 'vlans' in value  %}
+    bridge-vids {% for items in value.vlans %}{{ vlans[items] }} {% endfor %}
+
+{% endif %}
+{% if value and 'pvid' in value  %}
+    bridge-pvid {{ value.pvid }}
+{% endif %}
+{% if value and 'alias' in value %}
+    alias {{ value.alias }}
+{% endif %}
+{% if value and 'access' in value %}
+    bridge-access {{ value.access }}
+{% endif %}
+{% if value and 'address' in value %}
+    address {{ value.address }}
+{% endif %}
+{% if value and 'vrf' in value %}
+    vrf {{ value.vrf }}
+{% endif %}
+{% if value and 'gateway' in value %}
+    gateway {{ value.gateway }}
+{% endif %}
+{% if value and 'routes' in value %}
+{% for subnet, gateway in value['routes'].items() %}
+    post-up ip route add {{ subnet }} via {{ gateway }} dev {{ port }} {% if 'vrf' in value %} table {{ value.vrf }}{% endif %}
+
+{% endfor %}
+{% endif %}
+
+{% endfor %}
+{% endif %}
+{% if fabric is defined and 'vrfs' in fabric %}
+{% for vrfname, vrfinfo in fabric.vrfs.items() %}
+{% for port, value in interfaces.items() %}
+{% if value and 'fabric_port' in value %}
+auto {{ port }}.{{ vrfinfo.id }}
+iface {{ port }}.{{ vrfinfo.id }}
+    vrf {{ vrfname }}
+{% endif %}
+{% endfor %}
+{% endfor %}
+{% endif %}
+

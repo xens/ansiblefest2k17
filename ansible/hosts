@@ -1,0 +1,15 @@
+[spines]
+spine-r01n01
+spine-r01n02
+
+[servers]
+server1
+server2
+
+[leafs]
+leaf-r01n01
+leaf-r02n01
+
+[switches:children]
+leafs
+spines

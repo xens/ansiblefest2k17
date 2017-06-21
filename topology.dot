@@ -1,0 +1,19 @@
+#
+# How to generate an image from this file
+# dot -Tpng topology.dot -o topology.png
+#
+
+graph G {
+    "spine-r01n01" [function="spine" config="./helper_scripts/extra_switch_config.sh"]
+    "spine-r01n02" [function="spine" config="./helper_scripts/extra_switch_config.sh"]
+    "leaf-r01n01" [function="spine" config="./helper_scripts/extra_switch_config.sh"]
+    "leaf-r02n01" [function="spine" config="./helper_scripts/extra_switch_config.sh"]
+    "server1"   [function="host" config="./helper_scripts/extra_server_config.sh"]
+    "server2"   [function="host" config="./helper_scripts/extra_server_config.sh"]
+    "spine-r01n01":"swp1"  -- "leaf-r01n01":"swp31" [LLDP="match_type=portid"]
+    "spine-r01n01":"swp2"  -- "leaf-r02n01":"swp31" [LLDP="match_type=portid"]
+    "spine-r01n02":"swp1"  -- "leaf-r01n01":"swp32" [LLDP="match_type=portid"]
+    "spine-r01n02":"swp2"  -- "leaf-r02n01":"swp32" [LLDP="match_type=portid"]
+    "server1":"eth1" -- "leaf-r01n01":"swp1"
+    "server2":"eth1" -- "leaf-r02n01":"swp1"
+}

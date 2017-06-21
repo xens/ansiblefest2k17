@@ -1,0 +1,29 @@
+---
+- name: write the Quagga config file
+  template: src=templates/quagga.j2 dest=/etc/quagga/Quagga.conf
+  notify: reload quagga
+
+- name: write the Quagga daemons settings
+  template: src=templates/daemons dest=/etc/quagga/daemons
+  notify: start quagga
+
+- name: write temporary Quagga configuration file
+  template: src=templates/quagga.j2 dest=/tmp/Quagga.conf
+  check_mode: no
+  when: ansible_check_mode
+
+- name: test Quagga reload
+  command: /usr/lib/quagga/quagga-reload.py --test /tmp/Quagga.conf
+  check_mode: no
+  register: quagga_reload_test
+  changed_when: quagga_reload_test.stdout_lines
+  notify: show what Quagga reload would change
+  when: ansible_check_mode
+
+- name: configure policy-rc.d for clagd and quagga
+  copy: src=files/policy-rc.d dest=/usr/sbin/policy-rc.d owner=root group=root mode=0755
+
+- name: ensure Quagga is running
+  service: name=quagga enabled=yes state=started
+
+

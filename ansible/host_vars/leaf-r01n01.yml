@@ -1,0 +1,40 @@
+---
+
+fabric:
+  asn: 4200001001
+  uplink_port_start: 31
+  uplink_port_end: 32
+  router_id: "4.2.1.1"
+  loopback: 10.2.1.1
+
+vlans:
+  storage: 10
+
+bridge_vids:
+  - storage
+
+bridge_ports:
+  - swp1
+
+bridge:
+  10:
+    alias: Storage SVI
+    vipv4: 10.0.1.1/24
+    vmac:  00:00:5e:00:01:01
+    pipv4: 10.0.1.2
+
+interfaces:
+  swp1:
+    alias: server1
+    access: 10
+
+  swp31:
+    alias: spine-r01n01
+    fabric_port: True
+
+  swp32:
+    alias: spine-r01n02
+    fabric_port: True
+
+bgp_networks:
+  - 10.0.1.0/24

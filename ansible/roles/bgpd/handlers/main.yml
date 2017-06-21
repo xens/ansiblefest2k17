@@ -1,0 +1,9 @@
+---
+- name: reload quagga
+  service: name=quagga state=reloaded
+
+- name: show what Quagga reload would change
+  debug: var=quagga_reload_test.stdout_lines
+
+- name: start quagga
+  service: name=quagga state=started

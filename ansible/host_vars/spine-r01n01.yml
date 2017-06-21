@@ -1,0 +1,9 @@
+---
+
+fabric:
+  asn: 4200000001
+  uplink_port_start: 1
+  uplink_port_end: 6
+  router_id: "4.2.0.1"
+  loopback: 10.2.0.1
+

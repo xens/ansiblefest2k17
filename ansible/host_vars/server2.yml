@@ -1,0 +1,8 @@
+---
+
+interfaces:
+  eth1:
+    alias: leaf-r02n01
+    address: 10.0.2.10/24
+    routes:
+      10.0.0.0/8: 10.0.2.1

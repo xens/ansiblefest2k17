@@ -1,0 +1,26 @@
+---
+
+interfaces:
+  swp1:
+    alias: exleaf-r01n01
+    fabric_port: True
+
+  swp2:
+    alias: exleaf-r01n02
+    fabric_port: True
+
+  swp3:
+    alias: leaf-r02n01
+    fabric_port: True
+
+  swp4:
+    alias: leaf-r02n02
+    fabric_port: True
+
+  swp5:
+    alias: leaf-r03n01
+    fabric_port: True
+
+  swp6:
+    alias: leaf-r03n02
+    fabric_port: True

@@ -1,0 +1,3 @@
+---
+- include: servers.yml
+- include: switches.yml
