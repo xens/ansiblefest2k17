@@ -1,0 +1,68 @@
+stages:
+  - test
+  - staging
+  - production
+
+variables:
+  ANSIBLE_FORCE_COLOR: 'true'
+
+playbooks:
+  stage: test
+  tags:
+    - vagrant
+    - staging
+  script:
+    - ansible-playbook site.yml --forks=16 --diff --check
+
+end2end-staging:
+  stage: test
+  tags:
+    - vagrant
+    - staging
+  script:
+    - ansible -m shell -a 'ping -c 1 server2' server1
+
+end2end-production:
+  stage: test
+  tags:
+    - vagrant
+    - production
+  script:
+    - ansible -m shell -a 'ping -c 1 server2' server1
+
+bgp-staging:
+  stage: test
+  tags:
+    - vagrant
+    - staging
+  script:
+    - ansible -m shell -a 'ip route | grep bgp' switches
+
+bgp-production:
+  stage: test
+  tags:
+    - vagrant
+    - production
+  script:
+    - ansible -m shell -a 'ip route | grep bgp' switches
+
+staging:
+  stage: staging
+  tags:
+    - vagrant
+    - staging
+  script:
+    - ansible-playbook site.yml --forks=16 --diff
+  only:
+    - master
+
+production:
+  stage: production
+  tags:
+    - vagrant
+    - production
+  when: manual
+  script:
+    - ansible-playbook site.yml --forks=16 --diff
+  only:
+    - master
