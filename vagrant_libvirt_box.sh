@@ -3,7 +3,7 @@
 sudo add-apt-repository -y ppa:ansible/ansible
 sudo apt-get update
 sudo apt-get -y install ansible curl build-essential libvirt-bin libvirt-dev qemu qemu-utils python-pip
-wget http://monbeau.infomaniak.ch/ext-packages/v/vagrant_1.9.2_x86_64.deb
+wget https://releases.hashicorp.com/vagrant/1.9.2/vagrant_1.9.2_x86_64.deb
 sudo dpkg -i vagrant_1.9.2_x86_64.deb
 vagrant plugin install vagrant-libvirt vagrant-mutate
 sudo systemctl start libvirt-bin
